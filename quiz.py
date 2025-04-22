@@ -233,7 +233,8 @@ for idx, item in enumerate(quiz_data):
             method='caption',
             stroke_color='black',
             stroke_width=4,
-            size=(option_width, 70)
+            size=(option_width, None),
+            margin=(0, 5), 
         ).with_duration(full_q_audio.duration+6)
 
         freq = random.uniform(2, 4)
@@ -360,6 +361,27 @@ bg = VideoFileClip(bg_path)
 background = bg.subclipped(0, current_t)
 background = background.resized((W, H)).with_fps(24)
 video_overlays.insert(0, background)
+
+from moviepy.audio.fx import MultiplyVolume
+from moviepy import afx
+
+bg_music_path = r"C:/Users/Hrithik/OneDrive/Documents/AI/Fnite/Resources/Audio/Wii Music - Gaming Background Music (HD).mp3"
+bg_music = AudioFileClip(bg_music_path)
+
+# 1) Loop or trim it so it covers the whole quiz (current_t is your total duration)
+
+bg_music = bg_music.subclipped(0, current_t)
+
+print(type(bg_music))
+
+# 2) Lower the volume so voices stay clear
+bg_music = bg_music.with_effects([afx.MultiplyVolume(0.2)])
+
+# 3) Start it at t=0
+bg_music = bg_music.with_start(0)
+
+# Finally, include it in the mix
+audio_clips.insert(0, bg_music)
 
 # Final composite
 final = CompositeVideoClip(video_overlays, size=(W, H))\

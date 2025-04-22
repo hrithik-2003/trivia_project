@@ -10,16 +10,6 @@
         "answer": "Amazon River"
     },
     {
-        "question": "What is the largest island in the Mediterranean Sea?",
-        "options": [
-            "Sicily",
-            "Sardinia",
-            "Corsica",
-            "Crete"
-        ],
-        "answer": "Sicily"
-    },
-    {
         "question": "Which city is the capital of Australia?",
         "options": [
             "Sydney",
@@ -28,5 +18,15 @@
             "Perth"
         ],
         "answer": "Canberra"
+    },
+    {
+        "question": "Which mountain range runs along the border between France and Spain?",
+        "options": [
+            "Pyrenees",
+            "Alps",
+            "Carpathian Mountains",
+            "Apennine Mountains"
+        ],
+        "answer": "Pyrenees"
     }
 ]
