@@ -1,5 +1,5 @@
 import json
-from moviepy import CompositeVideoClip, ColorClip, TextClip, AudioClip, concatenate_audioclips, concatenate_videoclips, AudioFileClip,VideoFileClip, CompositeAudioClip, vfx
+from moviepy import CompositeVideoClip, ImageClip, TextClip, AudioClip, concatenate_audioclips, concatenate_videoclips, AudioFileClip,VideoFileClip, CompositeAudioClip, vfx
 import pyttsx3
 import os
 import numpy as np
@@ -72,13 +72,20 @@ audio_clips    = []
 current_t = 0.0
 
 
+countdown_radius = 50  # Adjust circle size as needed
+diameter = countdown_radius * 2
+circle_color = (255, 255, 255)  # White circle color
+
+tick_sound_path = "resources/audio/Clock Ticking Sound Effect.mp3"
+tick_sound = AudioFileClip(tick_sound_path)
+
 fy = fymod.FakeYou2()
 login = fy.login("dumpmedia3@gmail.com", password)
 print("Logged in as:", login.username)
 voices = fy.get_voices()
 token = ""
 for modelTokens, title in zip(voices.modelTokens, voices.title):
-    if 'Sexy Beatrice (British Accent)' in title:
+    if 'Sexy Angie' in title:
         token = modelTokens
         break
 
@@ -92,12 +99,44 @@ bg_color = (0, 0, 0)       # Background color (black)
 margin = 20                # General margin for placing texts
 
 # Font path (adjust according to your directory structure)
-font_path = "./resources/WinkyRough-VariableFont_wght.ttf"
+font_path = "./resources/LuckiestGuy-Regular.ttf"
+font_path2 = "./resources/WinkyRough-VariableFont_wght.ttf"
 
 for idx, item in enumerate(quiz_data):
     question = item['question']
     options = item['options']
     answer = item['answer']
+
+    s_text = "If you can answer all of these questions, you can be my good boy."
+    if idx == 0:
+        s_wav = f"audio_s_{idx}.wav"
+        if not os.path.exists(s_wav):
+            tts_q = safe_say_with_retries(s_text, token)
+            with open(s_wav,"wb") as f: f.write(tts_q.content)
+        audio_s_clip = AudioFileClip(s_wav)
+
+        audio_clips.append(audio_s_clip.with_start(current_t))
+        current_t += audio_s_clip.duration + 0.5 
+
+        start_clip = TextClip(
+            text=s_text,
+            font=font_path,
+            font_size=70,
+            color='white',
+            method='caption',
+            stroke_color='black',
+            stroke_width=8,
+            size=(W - 2 * margin, None),
+            margin=(0, 8),                   # vertical padding for stroke
+            vertical_align='top'             # anchor text to top of box
+        ).with_duration(audio_s_clip.duration+0.5)
+
+        start_height = start_clip.get_frame(0).shape[0]
+        total_content_height = start_height
+        start_y = (H - total_content_height) // 2
+
+        start_clip = start_clip.with_position(('center', start_y))
+        video_overlays.append(start_clip)
 
     # --- Generate TTS for question + options using safe_say ---
     q_wav = f"audio_q_{idx}.wav"
@@ -125,7 +164,7 @@ for idx, item in enumerate(quiz_data):
     if idx == 0:
         t_wav = f"audio_t_{idx}.wav"
         if not os.path.exists(t_wav):
-            text = "Subscribe if you like femboys!"
+            text = "Subscribe if you like gay black balls!"
             tts_t = safe_say_with_retries(text, token)
             with open(t_wav, "wb") as f: f.write(tts_t.content)
         audio_t_clip = AudioFileClip(t_wav).with_start(full_q_audio.duration+3)
@@ -141,8 +180,10 @@ for idx, item in enumerate(quiz_data):
         color='white',
         method='caption',
         stroke_color='black',
-        stroke_width=4,
-        size=(W - 2 * margin, None)
+        stroke_width=8,
+        size=(W - 2 * margin, None),
+        margin=(0, 8),                   # vertical padding for stroke
+        vertical_align='top'             # anchor text to top of box
     ).with_duration(full_q_audio.duration+6)
 
     # Create option text clips with shaking
@@ -158,7 +199,7 @@ for idx, item in enumerate(quiz_data):
             method='caption',
             stroke_color='black',
             stroke_width=4,
-            size=(option_width, None)
+            size=(option_width, 70)
         ).with_duration(full_q_audio.duration+6)
 
         freq = random.uniform(2, 4)
@@ -173,6 +214,7 @@ for idx, item in enumerate(quiz_data):
     # Measure sizes
     question_height = question_clip.get_frame(0).shape[0]
     option_height = option_clips[0].get_frame(0).shape[0]
+    
     spacing = 40
     total_content_height = question_height + spacing + 2 * option_height + spacing
     start_y = (H - total_content_height) // 2
@@ -190,17 +232,41 @@ for idx, item in enumerate(quiz_data):
 
     # Countdown
     countdown_start_time = current_t + full_q_audio.duration + 1
+
+    audio_clips.append(tick_sound.with_start(countdown_start_time))
+
+
     for i in range(5, 0, -1):
-        cnt = TextClip(
-            text=str(i),
-            font=font_path,
-            font_size=60,
-            color='red',
-            stroke_color='black',
-            stroke_width=4,
-            method='caption',
-            size=(W - 2 * margin, None)
-        ).with_duration(1).with_start(countdown_start_time + (5 - i)).with_position(('center', 150))
+        start_time = countdown_start_time + (5 - i)
+        
+        # 1) Create a white circle image as the background for the number
+        circle_img = np.zeros((diameter, diameter, 4), dtype=np.uint8)
+        yy, xx = np.ogrid[:diameter, :diameter]
+        mask = (xx - countdown_radius)**2 + (yy - countdown_radius)**2 <= countdown_radius**2
+        circle_img[mask] = (*circle_color, 255)  # Set circle color (white)
+        circle_clip = (
+            ImageClip(circle_img)
+            .with_duration(1)
+            .with_start(start_time)
+            .with_position(('center', 130))
+        )
+        video_overlays.append(circle_clip)
+
+        # 2) Overlay the countdown number on top of the circle
+        cnt = (
+            TextClip(
+                text=str(i),
+                font=font_path2,
+                font_size=60,
+                color='red',
+                method='caption',
+                size=(diameter, diameter),  # Use the circle's diameter for size
+        
+            )
+            .with_duration(1)
+            .with_start(start_time)
+            .with_position(('center', 130))
+        )
         video_overlays.append(cnt)
 
     # Add the audio for question + options
@@ -222,10 +288,10 @@ for idx, item in enumerate(quiz_data):
         font=font_path,
         font_size=80,
         color='white',
-        stroke_color='black',
-        stroke_width=4,
         method='caption',
-        size=(W - 2 * margin, None)
+        stroke_color='black',
+        stroke_width=8,
+        size=(W - 2 * margin, 130)
     ).with_duration(audio_a_clip.duration+1).with_start(current_t)
 
     answer_text_clip = TextClip(
@@ -236,7 +302,7 @@ for idx, item in enumerate(quiz_data):
         method='caption',
         stroke_color='black',
         stroke_width=4,
-        size=(W - 2 * margin, None)
+        size=(W - 2 * margin, 130)
     ).with_duration(audio_a_clip.duration+1).with_start(current_t)  # approx positioning inside
 
     # center them vertically
