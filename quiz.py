@@ -5,16 +5,50 @@ import os
 import numpy as np
 import random
 import time
+import json
+import re
 
 import Voice.fakeyou.fakeyou2 as fymod
 from importlib import reload
 import Voice.fakeyou.util.service as service_module
 
+from together import Together
+
 reload(service_module)
 reload(fymod)
 
+client = Together() # auth defaults to os.environ.get("TOGETHER_API_KEY")
 
+response = client.chat.completions.create(
+    model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+    messages=[{"role": "user", "content": '''Generate 3 easy to medium level geography trivia multiple choice questions with 4 options each, and provide the correct answer. But the format should be in JSON - for example [
+    {
+      "question": "What is the capital of France?",
+      "options": ["Paris", "London", "Berlin", "Rome"],
+      "answer": "Paris"
+    }
+  ]
+  '''}],
+)
 
+raw = response.choices[0].message.content
+
+# 1) Try to grab JSON inside ``` code fences
+m = re.search(r'```(?:json)?\s*(\[\s*[\s\S]*?\])\s*```', raw)
+if m:
+    json_str = m.group(1)
+else:
+    # 2) Fallback: grab from first '[' to last ']'
+    start = raw.find('[')
+    end   = raw.rfind(']')
+    json_str = raw[start:end+1]
+
+# Now parse
+quiz_data = json.loads(json_str)
+
+# Save it
+with open('quiz_data.json', 'w') as f:
+    json.dump(quiz_data, f, indent=4)
 
 accounts = [
     "dumpmedia3+abc@gmail.com",

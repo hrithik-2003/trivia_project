@@ -1,13 +1,32 @@
 [
     {
-      "question": "What is the capital of France?",
-      "options": ["Paris", "London", "Berlin", "Rome"],
-      "answer": "Paris"
+        "question": "Which river is the longest in South America?",
+        "options": [
+            "Amazon River",
+            "Parana River",
+            "Sao Francisco River",
+            "Magdalena River"
+        ],
+        "answer": "Amazon River"
     },
     {
-      "question": "Which planet is known as the Red Planet?",
-      "options": ["Earth", "Mars", "Jupiter", "Saturn"],
-      "answer": "Mars"
+        "question": "What is the largest island in the Mediterranean Sea?",
+        "options": [
+            "Sicily",
+            "Sardinia",
+            "Corsica",
+            "Crete"
+        ],
+        "answer": "Sicily"
+    },
+    {
+        "question": "Which city is the capital of Australia?",
+        "options": [
+            "Sydney",
+            "Melbourne",
+            "Canberra",
+            "Perth"
+        ],
+        "answer": "Canberra"
     }
-  ]
-  
+]
