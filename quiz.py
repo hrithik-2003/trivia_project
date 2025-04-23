@@ -7,19 +7,35 @@ import random
 import time
 import json
 import re
+from dotenv import load_dotenv
 
-import Voice.fakeyou.fakeyou2 as fymod
-from importlib import reload
-import Voice.fakeyou.util.service as service_module
 
 from together import Together
+from elevenlabs import  ElevenLabs, VoiceSettings
 
-reload(service_module)
-reload(fymod)
+# ─── ELEVENLABS SETUP ──────────────────────────────────
 
-client = Together() # auth defaults to os.environ.get("TOGETHER_API_KEY")
+load_dotenv()
+api_key = os.getenv("ELEVENLABS_API_KEY")
+client = ElevenLabs(api_key=api_key)  # initialize client once
 
-response = client.chat.completions.create(
+# pick your favorite voice from GET /v1/voices
+voice_id      = "pNInz6obpgDQGcFmaJgB"   # default ElevenLabs voice ID :contentReference[oaicite:4]{index=4}
+model_id      = "eleven_flash_v2_5"
+output_format = "mp3_44100_128"                # high‑quality WAV output :contentReference[oaicite:5]{index=5}
+voice_settings=VoiceSettings(
+        speed=0.9,            # 10% faster than normal :contentReference[oaicite:6]{index=6}
+        stability=0.8,        # fairly consistent tone :contentReference[oaicite:7]{index=7}
+        similarity_boost=0.7, # close to base voice :contentReference[oaicite:8]{index=8}
+        style=0.3,            # a touch of style exaggeration :contentReference[oaicite:9]{index=9}
+        use_speaker_boost=True
+    )
+
+
+
+gen_client = Together() # auth defaults to os.environ.get("TOGETHER_API_KEY")
+
+response = gen_client.chat.completions.create(
     model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
     messages=[{"role": "user", "content": '''Generate 3 easy to medium level geography trivia multiple choice questions with 4 options each, and provide the correct answer. But the format should be in JSON - for example [
     {
@@ -50,50 +66,50 @@ quiz_data = json.loads(json_str)
 with open('quiz_data.json', 'w') as f:
     json.dump(quiz_data, f, indent=4)
 
-accounts = [
-    "dumpmedia3+abc@gmail.com",
-    "dumpmedia3+def@gmail.com",
-    # add more as needed...
-]
-password = "hri2.03.0"
-current_account = 0
+# accounts = [
+#     "dumpmedia3+abc@gmail.com",
+#     "dumpmedia3+def@gmail.com",
+#     # add more as needed...
+# ]
+# password = "hri2.03.0"
+# current_account = 0
 
-def login_with(idx):
-    global fy, login
-    fy = fymod.FakeYou2()
-    login = fy.login(accounts[idx], password)
-    print("Logged in as:", login.username)
+# def login_with(idx):
+#     global fy, login
+#     fy = fymod.FakeYou2()
+#     login = fy.login(accounts[idx], password)
+#     print("Logged in as:", login.username)
 
-def safe_say(text, model_token):
-    """Try to generate TTS; on failure, rotate to next account and retry."""
-    global current_account
-    attempts = 0
-    while attempts < len(accounts):
-        try:
-            return fy.say(text, tts_model_token=model_token)
-        except Exception as e:
-            print(f"TTS failed on {accounts[current_account]}: {e}")
-            current_account = (current_account + 1) % len(accounts)
-            login_with(current_account)
-            attempts += 1
-    raise RuntimeError("All TTS accounts failed.")
+# def safe_say(text, model_token):
+#     """Try to generate TTS; on failure, rotate to next account and retry."""
+#     global current_account
+#     attempts = 0
+#     while attempts < len(accounts):
+#         try:
+#             return fy.say(text, tts_model_token=model_token)
+#         except Exception as e:
+#             print(f"TTS failed on {accounts[current_account]}: {e}")
+#             current_account = (current_account + 1) % len(accounts)
+#             login_with(current_account)
+#             attempts += 1
+#     raise RuntimeError("All TTS accounts failed.")
 
-def safe_say_with_retries(text, model_token, max_attempts=5, delay=10):
-    """
-    Calls safe_say(text, model_token), retrying up to max_attempts
-    with a delay (in seconds) between attempts.
-    """
-    attempt = 1
-    while True:
-        try:
-            return safe_say(text, model_token)
-        except Exception as e:
-            if attempt >= max_attempts:
-                # after exhausting retries, re-raise
-                raise RuntimeError(f"TTS failed after {max_attempts} attempts: {e}") from e
-            print(f"TTS attempt {attempt} failed: {e}. Retrying in {delay}s…")
-            time.sleep(delay)
-            attempt += 1
+# def safe_say_with_retries(text, model_token, max_attempts=5, delay=10):
+#     """
+#     Calls safe_say(text, model_token), retrying up to max_attempts
+#     with a delay (in seconds) between attempts.
+#     """
+#     attempt = 1
+#     while True:
+#         try:
+#             return safe_say(text, model_token)
+#         except Exception as e:
+#             if attempt >= max_attempts:
+#                 # after exhausting retries, re-raise
+#                 raise RuntimeError(f"TTS failed after {max_attempts} attempts: {e}") from e
+#             print(f"TTS attempt {attempt} failed: {e}. Retrying in {delay}s…")
+#             time.sleep(delay)
+#             attempt += 1
 
 def make_silence(duration=0.5, fps=44100):
     """Return a silent AudioClip of given duration."""
@@ -113,15 +129,18 @@ circle_color = (255, 255, 255)  # White circle color
 tick_sound_path = "resources/audio/Clock Ticking Sound Effect.mp3"
 tick_sound = AudioFileClip(tick_sound_path)
 
-fy = fymod.FakeYou2()
-login = fy.login("dumpmedia3@gmail.com", password)
-print("Logged in as:", login.username)
-voices = fy.get_voices()
-token = ""
-for modelTokens, title in zip(voices.modelTokens, voices.title):
-    if 'Sexy Angie' in title:
-        token = modelTokens
-        break
+correct_sound_path = "resources/audio/correct answer.mp3"
+correct_sound = AudioFileClip(correct_sound_path)
+
+# fy = fymod.FakeYou2()
+# login = fy.login("dumpmedia3@gmail.com", password)
+# print("Logged in as:", login.username)
+# voices = fy.get_voices()
+# token = ""
+# for modelTokens, title in zip(voices.modelTokens, voices.title):
+#     if 'Sexy Angie' in title:
+#         token = modelTokens
+#         break
 
 # Load quiz data
 with open('quiz_data.json', 'r') as f:
@@ -145,10 +164,19 @@ for idx, item in enumerate(quiz_data):
     if idx == 0:
         s_wav = f"audio_s_{idx}.wav"
         if not os.path.exists(s_wav):
-            tts_q = safe_say_with_retries(s_text, token)
-            with open(s_wav,"wb") as f: f.write(tts_q.content)
+            print(f"Generating TTS for {s_wav}")
+            audio_stream = client.text_to_speech.convert(
+                text=s_text,
+                voice_id=voice_id,
+                model_id=model_id,
+                voice_settings=voice_settings,
+                output_format=output_format
+            )
+            with open(s_wav, "wb") as f:
+                for chunk in audio_stream:
+                    f.write(chunk)
+                
         audio_s_clip = AudioFileClip(s_wav)
-
         audio_clips.append(audio_s_clip.with_start(current_t))
         current_t += audio_s_clip.duration + 0.5 
 
@@ -175,16 +203,34 @@ for idx, item in enumerate(quiz_data):
     # --- Generate TTS for question + options using safe_say ---
     q_wav = f"audio_q_{idx}.wav"
     if not os.path.exists(q_wav):
-        tts_q = safe_say_with_retries("Question: " + question, token)
-        with open(q_wav,"wb") as f: f.write(tts_q.content)
+        print(f"Generating TTS for {q_wav}")
+        audio_stream = client.text_to_speech.convert(
+            text="Question: " + question,
+            voice_id=voice_id,
+            model_id=model_id,
+            voice_settings=voice_settings,
+            output_format=output_format
+        )
+        with open(q_wav, "wb") as f:
+            for chunk in audio_stream:
+                f.write(chunk)
     audio_q_clip = AudioFileClip(q_wav)
 
     option_clips_audio = []
     for i, opt in enumerate(options):
         o_wav = f"audio_opt_{idx}_{i}.wav"
         if not os.path.exists(o_wav):
-            tts_o = safe_say_with_retries(f"{opt}", token)
-            with open(o_wav,"wb") as f: f.write(tts_o.content)
+            print(f"Generating TTS for {o_wav}")
+            audio_stream = client.text_to_speech.convert(
+                text=opt,
+                voice_id=voice_id,
+                model_id=model_id,
+                voice_settings=voice_settings,
+                output_format=output_format
+            )
+            with open(o_wav, "wb") as f:
+                for chunk in audio_stream:
+                    f.write(chunk)
         option_clips_audio.append(AudioFileClip(o_wav))
 
     sil = make_silence(0.5, audio_q_clip.fps)
@@ -196,11 +242,20 @@ for idx, item in enumerate(quiz_data):
 
     # Add "subscribe" shout-out on first question
     if idx == 0:
+        text = 'Subscribe is you like femboys!'
         t_wav = f"audio_t_{idx}.wav"
         if not os.path.exists(t_wav):
-            text = "Subscribe if you like gay black balls!"
-            tts_t = safe_say_with_retries(text, token)
-            with open(t_wav, "wb") as f: f.write(tts_t.content)
+            print(f"Generating TTS for {t_wav}")
+            audio_stream = client.text_to_speech.convert(
+                text=text,
+                voice_id=voice_id,
+                model_id=model_id,
+                voice_settings=voice_settings,
+                output_format=output_format
+            )
+            with open(t_wav, "wb") as f:
+                for chunk in audio_stream:
+                    f.write(chunk)
         audio_t_clip = AudioFileClip(t_wav).with_start(full_q_audio.duration+3)
         mixed_audio = CompositeAudioClip([full_q_audio, audio_t_clip])
     else:
@@ -219,6 +274,7 @@ for idx, item in enumerate(quiz_data):
         margin=(0, 8),                   # vertical padding for stroke
         vertical_align='top'             # anchor text to top of box
     ).with_duration(full_q_audio.duration+6)
+    question_clip = CompositeVideoClip([question_clip.with_effects([vfx.SlideIn( 0.1, 'bottom')])])
 
     # Create option text clips with shaking
     option_clips = []
@@ -234,7 +290,7 @@ for idx, item in enumerate(quiz_data):
             stroke_color='black',
             stroke_width=4,
             size=(option_width, None),
-            margin=(0, 5), 
+            margin=(0, 8), 
         ).with_duration(full_q_audio.duration+6)
 
         freq = random.uniform(2, 4)
@@ -243,6 +299,7 @@ for idx, item in enumerate(quiz_data):
         def make_shake(freq, amp, phase):
             return lambda t: amp * np.sin(2 * np.pi * freq * t + phase)
         shake = make_shake(freq, amp, phase)
+        clip = CompositeVideoClip([clip.with_effects([vfx.SlideIn( 0.1, 'bottom')])])
         clip = clip.rotated(angle=shake, unit='deg')
         option_clips.append(clip)
 
@@ -314,8 +371,17 @@ for idx, item in enumerate(quiz_data):
     a_wav = f"audio_a_{idx}.wav"
     if not os.path.exists(a_wav):
         answer_text = f"Correct option is {answer}."
-        tts_a = safe_say_with_retries(answer_text, token)
-        with open(a_wav, "wb") as f: f.write(tts_a.content)
+        print(f"Generating TTS for {a_wav}")
+        audio_stream = client.text_to_speech.convert(
+            text=answer_text,
+            voice_id=voice_id,
+            model_id=model_id,
+            voice_settings=voice_settings,
+            output_format=output_format
+        )
+        with open(a_wav, "wb") as f:
+            for chunk in audio_stream:
+                f.write(chunk)
     audio_a_clip = AudioFileClip(a_wav)
 
     answer_label_clip = TextClip(
@@ -339,6 +405,10 @@ for idx, item in enumerate(quiz_data):
         stroke_width=4,
         size=(W - 2 * margin, 130)
     ).with_duration(audio_a_clip.duration+1).with_start(current_t)  # approx positioning inside
+
+    audio_clips.append(
+    correct_sound.with_start(current_t)  # starts exactly when answer text shows
+    )
 
     # center them vertically
     label_h = answer_label_clip.get_frame(0).shape[0]
