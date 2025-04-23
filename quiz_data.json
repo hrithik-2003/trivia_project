@@ -1,32 +1,32 @@
 [
     {
-        "question": "Which river is the longest in South America?",
+        "question": "What is the process by which plants make their own food?",
         "options": [
-            "Amazon River",
-            "Parana River",
-            "Sao Francisco River",
-            "Magdalena River"
+            "Respiration",
+            "Photosynthesis",
+            "Fermentation",
+            "Mitosis"
         ],
-        "answer": "Amazon River"
+        "answer": "Photosynthesis"
     },
     {
-        "question": "What is the largest island in the Mediterranean Sea?",
+        "question": "Which part of a cell contains the genetic material?",
         "options": [
-            "Sicily",
-            "Sardinia",
-            "Corsica",
-            "Crete"
+            "Mitochondria",
+            "Nucleus",
+            "Golgi Apparatus",
+            "Lysosome"
         ],
-        "answer": "Sicily"
+        "answer": "Nucleus"
     },
     {
-        "question": "Which city is the capital of Australia?",
+        "question": "What is the term for the movement of water through a plant, from roots to leaves?",
         "options": [
-            "Sydney",
-            "Melbourne",
-            "Canberra",
-            "Perth"
+            "Respiration",
+            "Transpiration",
+            "Photosynthesis",
+            "Osmosis"
         ],
-        "answer": "Canberra"
+        "answer": "Transpiration"
     }
 ]
