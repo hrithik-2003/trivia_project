@@ -209,7 +209,7 @@ def build_quiz_video(num_questions=5, output_filename="quiz_video.mp4"):
         ans_clip = TextClip(
             text=f"Answer: {answer}",
             font=str(FONTS_DIR/"LuckiestGuy-Regular.ttf"), font_size=60,
-            color='yellow', method='caption', stroke_color='black', stroke_width=4,
+            color='green', method='caption', stroke_color='black', stroke_width=8,
             size=(VIDEO_WIDTH-2*MARGIN, None), margin=(0,8)
         ).with_duration(ans_audio.duration + 1)
         h_ans = ans_clip.get_frame(0).shape[0]
